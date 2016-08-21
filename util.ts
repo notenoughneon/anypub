@@ -1,51 +1,16 @@
 import fs = require('fs');
 import path = require('path');
-
-export function promisify<T>(f: (cb: (err: NodeJS.ErrnoException, res: T) => void) => void): () => Promise<T>;
-export function promisify<A,T>(f: (arg: A, cb: (err: NodeJS.ErrnoException, res: T) => void) => void): (arg: A) => Promise<T>;
-export function promisify<A,A2,T>(f: (arg: A, arg2: A2, cb: (err: NodeJS.ErrnoException, res: T) => void) => void): (arg: A, arg2: A2) => Promise<T>;
-export function promisify<A,A2,A3,T>(f: (arg: A, arg2: A2, arg3: A3, cb: (err: NodeJS.ErrnoException, res: T) => void) => void): (arg: A, arg2: A2, arg3: A3) => Promise<T>;
-export function promisify<A,A2,A3,A4,T>(f: (arg: A, arg2: A2, arg3: A3, arg4: A4, cb: (err: NodeJS.ErrnoException, res: T) => void) => void): (arg: A, arg2: A2, arg3: A3, arg4: A4) => Promise<T>;
-
-export function promisify(f) {
-    return function() {
-        return new Promise((resolve, reject) => {
-            var args = Array.prototype.slice.call(arguments);
-            args.push((err, result) => err !== null ? reject(err) : resolve(result));
-            f.apply(null, args);
-        });
-    }
-}
-
-export function map<T,U>(elts: PromiseLike<PromiseLike<T>[]>, f: (T) => U | PromiseLike<U>): Promise<U[]>;
-export function map<T,U>(elts: PromiseLike<T[]>, f: (T) => U | PromiseLike<U>): Promise<U[]>;
-export function map<T,U>(elts: PromiseLike<T>[], f: (T) => U | PromiseLike<U>): Promise<U[]>;
-export function map<T,U>(elts: T[], f: (T) => U | PromiseLike<U>): Promise<U[]>;
-export function map(elts, f) {
-    var apply = elts => Promise.all(elts.map(elt => typeof elt.then === 'function' ? elt.then(f) : f(elt)));
-    return typeof elts.then === 'function' ? elts.then(apply) : apply(elts);
-}
-
-export function _try<T>(f: () => T): Promise<T>;
-export function _try<T>(f: (arg: any) => T, arg: any): Promise<T>;
-export function _try<T>(f: (arg: any, arg2: any) => T, arg: any, arg2: any): Promise<T>;
-export function _try<T>(f: (arg: any, arg2: any, arg3: any) => T, arg: any, arg2: any, arg3: any): Promise<T>;
-export function _try<T>(f: (arg: any, arg2: any, arg3: any, arg4: any) => T, arg: any, arg2: any, arg3: any, arg4: any): Promise<T>;
-export function _try(f) {
-    return new Promise((res, rej) => {
-        try {
-            var args = Array.prototype.slice.call(arguments);
-            args.shift();
-            res(f.apply(null, args));
-        } catch (err) {
-            rej(err);
-        }
-    });
-}
+import {promisify, _try} from 'typed-promisify';
 
 var stat = promisify(fs.stat);
 var readdir = promisify(fs.readdir);
 var _writeFile = promisify(fs.writeFile);
+
+export function tryDelete(p) {
+    try {
+        fs.unlinkSync(p);
+    } catch (e) {}
+}
 
 function mkdirRecursive(dir) {
     try {
@@ -115,45 +80,3 @@ export function inferMimetype(filename) {
     }
 }
 
-export function delay(ms: number) {
-    return new Promise<void>((res, rej) => setTimeout(res, ms));
-}
-
-export class Semaphore {
-    private tasks: (() => void)[] = [];
-    capacity: number;
-
-    constructor(capacity: number) {
-        this.capacity = capacity;
-    }
-
-    private sched() {
-        if (this.capacity > 0 && this.tasks.length > 0) {
-            this.capacity--;
-            this.tasks.shift()();
-        }
-    }
-
-    public lock() {
-        return new Promise<() => void>((res, rej) => {
-            var task = () => {
-                var released = false;
-                res(() => {
-                    if (!released) {
-                        released = true;
-                        this.capacity++;
-                        this.sched();
-                    }
-                });
-            };
-            this.tasks.push(task);
-            process.nextTick(this.sched.bind(this));
-        });
-    }
-}
-
-export class Mutex extends Semaphore {
-    constructor() {
-        super(1);
-    }
-}

@@ -1,11 +1,12 @@
 import fs = require('fs');
 import pathlib = require('path');
 import util = require('./util');
+import {promisify} from 'typed-promisify';
 import Publisher from './publisher';
 
-var readFile = util.promisify(fs.readFile);
-var stat = util.promisify(fs.stat);
-var unlink = util.promisify(fs.unlink);
+var readFile = promisify(fs.readFile);
+var stat = promisify(fs.stat);
+var unlink = promisify(fs.unlink);
 
 class FilePublisher implements Publisher {
     root: string;

@@ -1,9 +1,8 @@
-var AWS = require('aws-sdk');
-import nodefn = require('when/node');
-var guard = require('when/guard');
-var debug = require('debug')('s3publisher');
-import util = require('./util');
+import * as AWS from 'aws-sdk';
+import {promisify} from 'typed-promisify';
+import * as util from './util';
 import Publisher from './publisher';
+var debug = require('debug')('s3publisher');
 
 // S3 doesn't like leading slashes
 function normalizePath(p) {
@@ -23,11 +22,11 @@ class S3Publisher implements Publisher {
     constructor(config: {region: string, bucket: string}) {
         this.bucket = config.bucket;
         var s3 = new AWS.S3({region: config.region});
-        this.putObject = guard(guard.n(10), nodefn.lift(s3.putObject.bind(s3)));
-        this.deleteObject = guard(guard.n(10), nodefn.lift(s3.deleteObject.bind(s3)));
-        this.getObject = guard(guard.n(10), nodefn.lift(s3.getObject.bind(s3)));
-        this.headObject = guard(guard.n(10), nodefn.lift(s3.headObject.bind(s3)));
-        this.listObjects = guard(guard.n(1), nodefn.lift(s3.listObjects.bind(s3)));
+        this.putObject = promisify(s3.putObject.bind(s3));
+        this.deleteObject = promisify(s3.deleteObject.bind(s3));
+        this.getObject = promisify(s3.getObject.bind(s3));
+        this.headObject = promisify(s3.headObject.bind(s3));
+        this.listObjects = promisify(s3.listObjects.bind(s3));
     }
 
     async put(path, obj, contentType): Promise<void> {
