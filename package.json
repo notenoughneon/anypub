@@ -6,6 +6,7 @@
   "scripts": {
     "prebuild": "typings install",
     "build": "tsc",
+    "clean": "rm *.js *.js.map test/*.js test/*.js.map",
     "test": "mocha test"
   },
   "repository": {
