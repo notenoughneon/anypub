@@ -52,31 +52,3 @@ export async function walkDir(d) {
     }
 }
 
-export function inferMimetype(filename) {
-    switch (path.extname(filename).toLowerCase()) {
-        case '.html':
-            return 'text/html';
-        case '.css':
-            return 'text/css';
-        case '.txt':
-            return 'text/plain';
-        case '.js':
-            return 'application/javascript';
-        case '.jpg':
-        case '.jpeg':
-            return 'image/jpeg';
-        case '.gif':
-            return 'image/gif';
-        case '.png':
-            return 'image/png';
-        case '.svg':
-            return 'image/svg+xml';
-        case '.mp3':
-            return 'audio/mpeg';
-        case '.ogg':
-            return 'audio/ogg';
-        default:
-            return 'application/octet-stream';
-    }
-}
-

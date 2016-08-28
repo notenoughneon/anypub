@@ -2,6 +2,7 @@ import fs = require('fs');
 import pathlib = require('path');
 import util = require('./util');
 import {promisify} from 'typed-promisify';
+import * as mime from 'mime';
 import Publisher from './publisher';
 
 var readFile = promisify(fs.readFile);
@@ -19,7 +20,7 @@ class FilePublisher implements Publisher {
         for (let ext of extensions) {
             try {
                 var res = await readFile(filepath + ext);
-                return {Body: res, ContentType: util.inferMimetype(filepath + ext)};
+                return {Body: res, ContentType: mime.lookup(filepath + ext)};
             } catch (err) {}
         }
         throw new Error(filepath + ' not found');

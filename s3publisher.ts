@@ -1,6 +1,7 @@
 import * as AWS from 'aws-sdk';
 import {promisify} from 'typed-promisify';
 import * as util from './util';
+import * as mime from 'mime';
 import Publisher from './publisher';
 var debug = require('debug')('s3publisher');
 
@@ -34,7 +35,7 @@ class S3Publisher implements Publisher {
             Bucket: this.bucket,
             Key: normalizePath(path),
             Body: obj,
-            ContentType: contentType !== undefined ? contentType : util.inferMimetype(path)
+            ContentType: contentType !== undefined ? contentType : mime.lookup(path)
         };
         await this.putObject(params);
         debug('put ' + params.Key);
