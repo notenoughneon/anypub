@@ -1,7 +1,6 @@
 import assert = require('assert');
 import child_process = require('child_process');
 import GitPublisher = require('../gitpublisher');
-import util = require('../util');
 import {promisify} from 'typed-promisify';
 
 var exec = promisify(child_process.exec);

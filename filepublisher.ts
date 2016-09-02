@@ -1,13 +1,54 @@
 import fs = require('fs');
 import pathlib = require('path');
-import util = require('./util');
-import {promisify} from 'typed-promisify';
+import {promisify, _try} from 'typed-promisify';
 import * as mime from 'mime';
 import Publisher from './publisher';
 
 var readFile = promisify(fs.readFile);
 var stat = promisify(fs.stat);
 var unlink = promisify(fs.unlink);
+var readdir = promisify(fs.readdir);
+var _writeFile = promisify(fs.writeFile);
+
+function mkdirRecursive(dir) {
+    try {
+        var stats = fs.statSync(dir);
+    } catch (err) {
+        if (err.code == 'ENOENT') {
+            mkdirRecursive(pathlib.dirname(dir));
+            fs.mkdirSync(dir);
+            return;
+        } else
+            throw err;
+    }
+    if (!stats.isDirectory())
+        throw(new Error(dir + ' is not a directory'));
+}
+
+/* writeFile with recursive parent dir creation */
+function writeFile(filename: string, data: string | NodeJS.ReadableStream) {
+    return _try(mkdirRecursive, pathlib.dirname(filename)).
+        then(() => {
+            if (typeof data !== "string" && data.readable)
+                data.pipe(fs.createWriteStream(filename));
+            else
+                return _writeFile(filename, data);
+        });
+}
+
+/* walk directory recursively and return list of files */
+async function walkDir(d) {
+    var stats = await stat(d);
+    if (stats.isDirectory()) {
+        var files = [];
+        for (let file of await readdir(d)) {
+            files = files.concat(await walkDir(pathlib.join(d, file)));
+        }
+        return files;
+    } else {
+        return [d];
+    }
+}
 
 class FilePublisher implements Publisher {
     root: string;
@@ -39,7 +80,7 @@ class FilePublisher implements Publisher {
     put(path, obj, contentType): Promise<void> {
         if (contentType === 'text/html' && !path.endsWith('.html'))
             path = path + '.html';
-        return util.writeFile(pathlib.join(this.root, path), obj);
+        return writeFile(pathlib.join(this.root, path), obj);
     }
     
     async delete(path, contentType) {
@@ -57,7 +98,7 @@ class FilePublisher implements Publisher {
     }
 
     list() {
-        return util.walkDir(this.root)
+        return walkDir(this.root)
         .then(paths => paths.map(p => pathlib.relative(this.root, p)))
         .then(paths => paths.filter(p => p !== 'log.txt'));
     }
@@ -76,6 +117,8 @@ class FilePublisher implements Publisher {
             }).
             then(() => undefined);
     }
+
+
 }
 
 export = FilePublisher;

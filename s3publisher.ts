@@ -1,6 +1,5 @@
 import * as AWS from 'aws-sdk';
 import {promisify} from 'typed-promisify';
-import * as util from './util';
 import * as mime from 'mime';
 import Publisher from './publisher';
 var debug = require('debug')('s3publisher');
