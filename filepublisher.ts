@@ -8,14 +8,14 @@ var readFile = promisify(fs.readFile);
 var stat = promisify(fs.stat);
 var unlink = promisify(fs.unlink);
 var readdir = promisify(fs.readdir);
-var _writeFile = promisify(fs.writeFile);
+var writeFile = promisify(fs.writeFile);
 
-function mkdirRecursive(dir) {
+function mkdirP(dir) {
     try {
         var stats = fs.statSync(dir);
     } catch (err) {
         if (err.code == 'ENOENT') {
-            mkdirRecursive(pathlib.dirname(dir));
+            mkdirP(pathlib.dirname(dir));
             fs.mkdirSync(dir);
             return;
         } else
@@ -26,13 +26,13 @@ function mkdirRecursive(dir) {
 }
 
 /* writeFile with recursive parent dir creation */
-function writeFile(filename: string, data: string | NodeJS.ReadableStream) {
-    return _try(mkdirRecursive, pathlib.dirname(filename)).
+function writeFileP(filename: string, data: string | NodeJS.ReadableStream) {
+    return _try(mkdirP, pathlib.dirname(filename)).
         then(() => {
             if (typeof data !== "string" && data.readable)
                 data.pipe(fs.createWriteStream(filename));
             else
-                return _writeFile(filename, data);
+                return writeFile(filename, data);
         });
 }
 
@@ -80,7 +80,7 @@ class FilePublisher implements Publisher {
     put(path, obj, contentType): Promise<void> {
         if (contentType === 'text/html' && !path.endsWith('.html'))
             path = path + '.html';
-        return writeFile(pathlib.join(this.root, path), obj);
+        return writeFileP(pathlib.join(this.root, path), obj);
     }
     
     async delete(path, contentType) {
